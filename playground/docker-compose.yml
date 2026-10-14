@@ -20,7 +20,7 @@ services:
       PLAYGROUND_CLIENT_ID: ${PLAYGROUND_CLIENT_ID:-playground}
       PLAYGROUND_CLIENT_SECRET: ${PLAYGROUND_CLIENT_SECRET:-}
     ports:
-      - "127.0.0.1:5100:5100"
+      - "5100:5100"
     extra_hosts:
       # Docker Desktop defines this name already; Linux needs it spelled out.
       - "host.docker.internal:host-gateway"
