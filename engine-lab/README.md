@@ -19,8 +19,9 @@ movement's frames once a bar shows you have turned far enough, while you hold it
 to 8 seconds, then says what it did not see, without sending anything. The engine still judges
 every frame it receives; the tracker only decides when to take them. Under the camera, the lab
 shows the tracker's live yaw and pitch: compare them with the movement the engine logs to tune
-`TRIGGER` in `src/lib/guided-capture.ts`, which is not yet calibrated on real faces. If the tracker
-cannot load, the lab falls back to a timed capture.
+`TRIGGER` in `src/lib/guided-capture.ts`, which is set from MediaPipe's canonical face (about 25° of
+turn, 20° of tilt) and not yet checked on real faces. If the tracker cannot load, the lab falls back
+to a timed capture.
 
 The browser never talks to the engine. A route handler (`src/app/api/engine/[op]/route.ts`)
 forwards each call and adds the engine's token, which stays on the server.

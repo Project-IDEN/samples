@@ -18,12 +18,12 @@ const MOVES: Record<string, { axis: keyof Pose; sign: number }> = {
   look_up: { axis: "pitch", sign: -1 },
   look_down: { axis: "pitch", sign: 1 },
 };
-// How far counts here. Past the engine's bar (turn_delta 0.15 and
-// pitch_delta 0.08 in engine/models.toml), because its landmarks come from
-// another model and land a little differently. NOT CALIBRATED on real faces:
-// compare the tracker's readings with the movement the engine logs, and move
-// these until a capture the tracker accepts is one the engine accepts.
-const TRIGGER: Record<keyof Pose, number> = { yaw: 0.22, pitch: 0.12 };
+// How far counts here: about 25° of turn and 20° of tilt, measured on
+// MediaPipe's canonical face. Well past the engine's bar (turn_delta 0.22 and
+// pitch_delta 0.14 in engine/models.toml, about 16° and 13°), because its
+// landmarks come from another model and can read a turn up to a third smaller.
+// The same values as the IDEN kiosk.
+const TRIGGER: Record<keyof Pose, number> = { yaw: 0.37, pitch: 0.22 };
 // Facing the camera, near enough to call straight ahead.
 const FRONTAL_YAW = 0.12;
 
