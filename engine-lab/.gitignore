@@ -43,3 +43,6 @@ next-env.d.ts
 
 # The repository root ignores lib/ (a Python template); this one is source.
 !/src/lib/
+
+# Copied and fetched by scripts/fetch-tracker.mjs.
+/public/tracker/

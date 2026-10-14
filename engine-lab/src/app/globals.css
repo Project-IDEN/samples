@@ -307,6 +307,27 @@ label {
   white-space: nowrap;
 }
 
+.reach {
+  position: absolute;
+  left: 20%;
+  right: 20%;
+  top: 16px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.25);
+  overflow: hidden;
+}
+
+.reach div {
+  height: 100%;
+  background: #5fd394;
+  transition: width 80ms linear;
+}
+
+.tracking {
+  margin: 8px 0 0;
+}
+
 .controls {
   display: flex;
   flex-direction: column;

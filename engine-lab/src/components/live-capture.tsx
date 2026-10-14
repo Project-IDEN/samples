@@ -1,9 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { drawSteps } from "@/lib/challenge";
 import { grab, useCamera, wait } from "@/lib/camera";
 import { call, frameForm, type EnrollResult, type VerifyResult } from "@/lib/engine";
+import { guidedCapture, type Phase } from "@/lib/guided-capture";
+import { track, type HeadTracker, type Pose } from "@/lib/head-tracker";
 import { ResultView } from "./result-view";
 import type { Person } from "./people";
 
@@ -14,13 +16,19 @@ const PROMPTS: Record<string, string> = {
   look_up: "Tilt your head up",
   look_down: "Tilt your head down",
 };
-// Time to read a prompt and move, between frames, and between two movements:
-// the kiosk's and the sign-in page's timings. A movement's frames are spread
+// Without the head tracker: a timed capture. Time to read a prompt and move,
+// between frames, and between two movements. A movement's frames are spread
 // over a second while the person holds the pose; the engine counts the
 // furthest of them.
 const SETTLE_MS = { center: 900, action: 1200 };
 const FRAME_GAP_MS = { center: 220, action: 500 };
 const RECENTRE_MS = 900;
+
+function promptFor({ name, step }: Phase): string {
+  if (name === "recentre") return "Face the camera again";
+  if (name === "hold") return `${PROMPTS[step]} — hold it there`;
+  return PROMPTS[step];
+}
 
 interface Shot {
   step: string;
@@ -53,6 +61,10 @@ export function LiveCapture({
   const [against, setAgainst] = useState("");
   const [busy, setBusy] = useState(false);
   const [prompt, setPrompt] = useState<string | null>(null);
+  const [progress, setProgress] = useState<number | null>(null);
+  const tracker = useRef<HeadTracker | null>(null);
+  const [tracking, setTracking] = useState<"loading" | "ready" | "failed">("loading");
+  const [pose, setPose] = useState<Pose | null>(null);
   const [shots, setShots] = useState<Shot[]>([]);
   const [result, setResult] = useState<EnrollResult | VerifyResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +72,23 @@ export function LiveCapture({
   const person = people.find((p) => p.name === (against || people[0]?.name));
   const canStart =
     status === "ready" && !busy && (mode === "enroll" ? name.trim() !== "" : Boolean(person));
+
+  useEffect(() => {
+    if (status !== "ready" || !video.current) return;
+    let cancelled = false;
+    track(video.current, setPose)
+      .then((started) => {
+        if (cancelled) return started.stop();
+        tracker.current = started;
+        setTracking("ready");
+      })
+      .catch(() => setTracking("failed"));
+    return () => {
+      cancelled = true;
+      tracker.current?.stop();
+      tracker.current = null;
+    };
+  }, [status, video]);
 
   async function capture(steps: string[]): Promise<Blob[]> {
     const source = video.current;
@@ -71,6 +100,15 @@ export function LiveCapture({
       frames.push(blob);
       setShots((all) => [...all, { step, url: URL.createObjectURL(blob) }]);
     };
+
+    if (tracker.current) {
+      await guidedCapture(steps, tracker.current, {
+        phase: (phase) => setPrompt(promptFor(phase)),
+        progress: setProgress,
+        take,
+      });
+      return frames;
+    }
 
     let previous: string | null = null;
     for (const { step, count } of groups(steps)) {
@@ -117,6 +155,7 @@ export function LiveCapture({
       setError((e as Error).message);
     } finally {
       setPrompt(null);
+      setProgress(null);
       setBusy(false);
     }
   }
@@ -128,6 +167,18 @@ export function LiveCapture({
           <video ref={video} muted playsInline />
           <div className="oval" aria-hidden />
           {prompt ? <p className="prompt">{prompt}</p> : null}
+          {progress !== null ? (
+            <div
+              className="reach"
+              role="progressbar"
+              aria-label="How far you have turned"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(progress * 100)}
+            >
+              <div style={{ width: `${progress * 100}%` }} />
+            </div>
+          ) : null}
           {status === "denied" ? (
             <p className="prompt">Camera permission was refused.</p>
           ) : status === "missing" ? (
@@ -135,6 +186,15 @@ export function LiveCapture({
           ) : null}
         </div>
         <canvas ref={canvas} hidden />
+        <p className="tracking metric">
+          {tracking === "loading"
+            ? "Loading the head tracker…"
+            : tracking === "failed"
+              ? "Head tracker unavailable: using the timed capture."
+              : pose
+                ? `Head tracker: yaw ${pose.yaw.toFixed(2)}, pitch ${pose.pitch.toFixed(2)}`
+                : "Head tracker: no face in view"}
+        </p>
       </div>
 
       <div className="controls">
@@ -203,8 +263,8 @@ export function LiveCapture({
           {busy ? "Capturing…" : mode === "enroll" ? "Start enrolment" : "Start verification"}
         </button>
         <p className="hint">
-          9 frames: 3 straight ahead, then 2 random head movements. Turn all the way and hold
-          each position until the next instruction.
+          9 frames: 3 straight ahead, then 2 random head movements. Each movement waits for you:
+          turn until the bar fills, then hold while the frames are taken.
         </p>
 
         {error ? <p className="error">{error}</p> : null}
