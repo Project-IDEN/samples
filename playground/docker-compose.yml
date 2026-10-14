@@ -1,0 +1,39 @@
+# The IDEN OIDC playground on its own. IDEN itself runs from its own compose
+# file; this one only needs to reach it.
+#
+#   cp .env.example .env    # then fill in the client secret
+#   docker compose up --build
+#
+# and open http://localhost:5100.
+
+name: iden-playground
+
+services:
+  playground:
+    build: .
+    environment:
+      IDEN_ISSUER: ${IDEN_ISSUER:-http://localhost:8000}
+      # Inside this container `localhost` is the container. host.docker.internal
+      # is the machine IDEN publishes its port on.
+      IDEN_INTERNAL_URL: ${IDEN_INTERNAL_URL:-http://host.docker.internal:8000}
+      PLAYGROUND_URL: ${PLAYGROUND_URL:-http://localhost:5100}
+      PLAYGROUND_CLIENT_ID: ${PLAYGROUND_CLIENT_ID:-playground}
+      PLAYGROUND_CLIENT_SECRET: ${PLAYGROUND_CLIENT_SECRET:-}
+    ports:
+      - "127.0.0.1:5100:5100"
+    extra_hosts:
+      # Docker Desktop defines this name already; Linux needs it spelled out.
+      - "host.docker.internal:host-gateway"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5100/health')"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
