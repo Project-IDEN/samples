@@ -23,19 +23,21 @@ playground, and also by IDEN, because the client is registered with no grantable
 
 ## Run it
 
-You need a running IDEN. See the [IDEN quick start](https://github.com/Project-IDEN/iden#quick-start).
+You need a running IDEN that the playground's server and your browser can both reach at its issuer
+URL. See the [IDEN quick start](https://github.com/Project-IDEN/iden#quick-start).
 
 ### 1. Register the client in IDEN
 
-In the IDEN dashboard, go to **Administration → Clients → New**:
+In the IDEN dashboard, go to **Administration → Clients → New**. `PLAYGROUND_URL` below is wherever
+the playground is reached, for example `http://playground.example.com:5100`:
 
 | Field | Value |
 |---|---|
 | Client ID | `playground` |
 | Type | **Confidential** (the playground exchanges the code on its server) |
 | Grants | `authorization_code`, `refresh_token` |
-| Redirect URI | `http://localhost:5100/callback` |
-| Post-logout redirect URI | `http://localhost:5100/` |
+| Redirect URI | `PLAYGROUND_URL/callback` |
+| Post-logout redirect URI | `PLAYGROUND_URL/` |
 | Skip consent | Off, so you can see the consent screen and test `prompt=consent` |
 | Scopes | **None.** The OIDC scopes need no grant, and leaving the rest out keeps it OIDC-only |
 
@@ -45,7 +47,7 @@ Copy the client secret. It is shown only once.
 <summary>The same thing with <code>curl</code></summary>
 
 ```bash
-curl -X POST http://localhost:8000/admin/clients \
+curl -X POST "$IDEN_ISSUER/admin/clients" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -53,8 +55,8 @@ curl -X POST http://localhost:8000/admin/clients \
     "name": "OIDC Playground",
     "clientType": "confidential",
     "allowedGrants": ["authorization_code", "refresh_token"],
-    "redirectUris": ["http://localhost:5100/callback"],
-    "postLogoutRedirectUris": ["http://localhost:5100/"],
+    "redirectUris": ["'"$PLAYGROUND_URL"'/callback"],
+    "postLogoutRedirectUris": ["'"$PLAYGROUND_URL"'/"],
     "skipConsent": false,
     "grantableScopeIds": []
   }'
@@ -68,11 +70,11 @@ code.
 ### 2. Configure and start
 
 ```bash
-cp .env.example .env              # set PLAYGROUND_CLIENT_SECRET
-docker compose up --build
+cp .env.example .env              # set IDEN_ISSUER, PLAYGROUND_URL, PLAYGROUND_CLIENT_SECRET
+docker compose up --build -d
 ```
 
-Open <http://localhost:5100>.
+Caddy serves the playground on port **5100**, over plain HTTP. Open `PLAYGROUND_URL`.
 
 ### 3. Set up the people you test with
 
@@ -109,59 +111,66 @@ All settings are in `.env`:
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `IDEN_ISSUER` | `http://localhost:8000` | IDEN's issuer URL, which the browser goes to. Must match IDEN's `IDEN_ISSUER` exactly |
-| `IDEN_INTERNAL_URL` | `http://host.docker.internal:8000` | How the container reaches IDEN. Inside a container, `localhost` is the container itself |
-| `PLAYGROUND_URL` | `http://localhost:5100` | Where the browser reaches the playground. Redirect URIs are built from it |
+| `IDEN_ISSUER` | *(required)* | IDEN's issuer URL. The browser signs in there and the server calls it directly. Must match IDEN's `IDEN_ISSUER` exactly |
+| `PLAYGROUND_URL` | *(required)* | Where the browser reaches the playground. Redirect URIs are built from it |
 | `PLAYGROUND_CLIENT_ID` | `playground` | The client registered in step 1 |
 | `PLAYGROUND_CLIENT_SECRET` | *(empty)* | Its secret. Leave empty for a public client |
 
-If `PLAYGROUND_URL` is `https://`, the session cookie becomes `__Host-` prefixed and `Secure`.
+If `PLAYGROUND_URL` is `https://` (TLS ended by something in front of Caddy), the session cookie
+becomes `__Host-` prefixed and `Secure`.
 
 ### Without Docker
 
 ```bash
-python -m venv .venv && . .venv/bin/activate
-pip install -r requirements.txt
-export PLAYGROUND_CLIENT_SECRET=...      # IDEN_INTERNAL_URL can stay unset here
-uvicorn app.main:app --port 5100
+pnpm install
+IDEN_ISSUER=http://localhost:8000 PLAYGROUND_CLIENT_SECRET=... pnpm dev
 ```
+
+Open <http://localhost:5100>.
 
 ## How it is built
 
 ```
 playground/
-├── app/
-│   ├── main.py              # the whole client: routes, PKCE, token validation
-│   ├── templates/index.html # one server-rendered page
-│   └── static/style.css     # neubrutalism, no JavaScript anywhere
-├── Dockerfile
-├── docker-compose.yml
-├── requirements.txt
+├── src/
+│   ├── app/
+│   │   ├── page.tsx         # one server-rendered page
+│   │   ├── globals.css      # neubrutalism
+│   │   ├── authorize/ callback/ refresh/ userinfo/ revoke/ logout/ clear/
+│   │   │                    # route handlers, one per form or redirect
+│   │   └── session/         # gives a new browser its session cookie
+│   └── lib/
+│       ├── config.ts        # environment and constants
+│       ├── session.ts       # in-memory sessions, CSRF
+│       └── iden.ts          # discovery, token endpoint, ID token checks, userinfo
+├── Caddyfile                # :5100, plain HTTP, security headers
+├── Dockerfile               # Next.js standalone build
+├── docker-compose.yml       # playground + caddy
 └── .env.example
 ```
 
-It is a **confidential, server-side client**, and the page uses no JavaScript. Security measures:
+It is a Next.js app and a **confidential, server-side client**. Every button is a plain HTML form
+posting to a route handler, so tokens never reach the browser's JavaScript. Security measures:
 
 - **PKCE (S256), `state` and `nonce`** on every request. `state` is single-use and expires after
   10 minutes. A callback with an unknown `state` is refused before any code is exchanged.
 - **`iss` on the callback is checked** (RFC 9207), on errors as well as on success, to stop
   mix-up attacks.
-- **The ID token is fully validated:** signature against IDEN's JWKS (asymmetric algorithms only,
-  keys refetched on rotation), plus `iss`, `aud`, `azp`, `exp`, `iat` and `nonce`. Access and
-  logout tokens are rejected by `typ` and `events`. A refreshed ID token must name the same `sub`.
-  The userinfo `sub` must match the ID token's.
+- **The ID token is fully validated** with `jose`: signature against IDEN's JWKS (asymmetric
+  algorithms only, keys refetched on rotation), plus `iss`, `aud`, `azp`, `exp`, `iat` and `nonce`.
+  Access and logout tokens are rejected by `typ` and `events`. A refreshed ID token must name the
+  same `sub`. The userinfo `sub` must match the ID token's.
 - **The access token is not trusted.** It is shown decoded, but it is addressed to APIs, which
   are the ones that validate it.
 - **Tokens stay on the server**, in memory, keyed by a random `HttpOnly`, `SameSite=Lax` cookie.
   Sessions expire after an hour.
 - **Every POST requires a CSRF token.** Form input is checked against allowlists, so only known
   scopes, `acr_values` and `prompt` values ever reach IDEN.
-- **Strict headers:** a CSP with no script sources, `frame-ancestors 'none'`,
-  `Referrer-Policy: no-referrer` (the callback URL carries a code), and `Cache-Control: no-store`.
+- **Strict headers from Caddy:** a CSP limiting forms to the playground and IDEN,
+  `frame-ancestors 'none'`, and `Referrer-Policy: no-referrer` (the callback URL carries a code).
   After the callback the app redirects, so the code never stays in the address bar or history.
-- **Hardened container:** non-root user, read-only filesystem, all capabilities dropped,
-  `no-new-privileges`, and a port bound to loopback only.
+- **Hardened containers:** non-root Node, read-only filesystems, all capabilities dropped,
+  `no-new-privileges`. Only Caddy publishes a port.
 
-Sessions are held in memory, so the app runs as **one worker**, and a restart signs everyone out of
-the playground. Back-channel logout is not implemented: during local development, IDEN's container
-can't reach a URL on loopback in another container.
+Sessions are held in memory, so the app runs as **one instance**, and a restart signs everyone out
+of the playground. Back-channel logout is not implemented.

@@ -1,0 +1,22 @@
+# Plain HTTP on :5100, in front of the Next.js server. Put TLS on whatever sits
+# in front of this, or turn auto_https back on and give the site a host name.
+{
+	auto_https off
+	admin off
+}
+
+:5100 {
+	encode zstd gzip
+
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		# The callback URL carries an authorization code. Never leak it onward.
+		Referrer-Policy no-referrer
+		# The forms end in a redirect to IDEN, which form-action covers.
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; form-action 'self' {$IDEN_ISSUER}; base-uri 'none'; frame-ancestors 'none'"
+		-Server
+	}
+
+	reverse_proxy playground:3000
+}

@@ -1,8 +1,10 @@
 .env
 .env.*
 !.env.example
-__pycache__/
-*.pyc
-.venv/
+node_modules
+.next
+*.tsbuildinfo
+next-env.d.ts
 README.md
 docker-compose.yml
+Caddyfile

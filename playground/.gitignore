@@ -1,4 +1,9 @@
 .env
-__pycache__/
-*.pyc
-.venv/
+/node_modules
+/.next/
+*.tsbuildinfo
+next-env.d.ts
+.DS_Store
+
+# The repository root ignores lib/ (a Python template); this one is source.
+!/src/lib/

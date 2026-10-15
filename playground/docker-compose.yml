@@ -1,10 +1,7 @@
-# The IDEN OIDC playground on its own. IDEN itself runs from its own compose
-# file; this one only needs to reach it.
+# The IDEN OIDC playground: the Next.js app behind Caddy, on plain HTTP :5100.
 #
-#   cp .env.example .env    # then fill in the client secret
-#   docker compose up --build
-#
-# and open http://localhost:5100.
+#   cp .env.example .env    # then fill it in
+#   docker compose up --build -d
 
 name: iden-playground
 
@@ -12,18 +9,10 @@ services:
   playground:
     build: .
     environment:
-      IDEN_ISSUER: ${IDEN_ISSUER:-http://localhost:8000}
-      # Inside this container `localhost` is the container. host.docker.internal
-      # is the machine IDEN publishes its port on.
-      IDEN_INTERNAL_URL: ${IDEN_INTERNAL_URL:-http://host.docker.internal:8000}
-      PLAYGROUND_URL: ${PLAYGROUND_URL:-http://localhost:5100}
+      IDEN_ISSUER: ${IDEN_ISSUER:?set IDEN_ISSUER in .env}
+      PLAYGROUND_URL: ${PLAYGROUND_URL:?set PLAYGROUND_URL in .env}
       PLAYGROUND_CLIENT_ID: ${PLAYGROUND_CLIENT_ID:-playground}
       PLAYGROUND_CLIENT_SECRET: ${PLAYGROUND_CLIENT_SECRET:-}
-    ports:
-      - "5100:5100"
-    extra_hosts:
-      # Docker Desktop defines this name already; Linux needs it spelled out.
-      - "host.docker.internal:host-gateway"
     read_only: true
     tmpfs:
       - /tmp
@@ -32,8 +21,32 @@ services:
     security_opt:
       - no-new-privileges:true
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5100/health')"]
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
       interval: 30s
       timeout: 3s
       retries: 3
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    environment:
+      IDEN_ISSUER: ${IDEN_ISSUER}
+    ports:
+      - "5100:5100"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      playground:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /data
+      - /config
+    cap_drop:
+      - ALL
+    cap_add:
+      # The caddy binary carries this file capability; without it, it won't start.
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
