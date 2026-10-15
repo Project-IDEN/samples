@@ -47,9 +47,11 @@ export function Lab() {
 
   return (
     <main>
-      <header>
+      <header className="top">
         <div>
-          <h1>Engine Lab</h1>
+          <h1>
+            <span className="mark">IDEN</span> Engine Lab
+          </h1>
           <p>Try the IDEN biometric engine directly: capture, liveness, and matching.</p>
         </div>
         <EngineInfo onInfo={setInfo} />
