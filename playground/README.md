@@ -74,7 +74,7 @@ cp .env.example .env              # set IDEN_ISSUER, PLAYGROUND_URL, PLAYGROUND_
 docker compose up --build -d
 ```
 
-Caddy serves the playground on port **5100**, over plain HTTP. Open `PLAYGROUND_URL`.
+Next.js serves the playground on port **5100**, over plain HTTP. Open `PLAYGROUND_URL`.
 
 ### 3. Set up the people you test with
 
@@ -116,7 +116,7 @@ All settings are in `.env`:
 | `PLAYGROUND_CLIENT_ID` | `playground` | The client registered in step 1 |
 | `PLAYGROUND_CLIENT_SECRET` | *(empty)* | Its secret. Leave empty for a public client |
 
-If `PLAYGROUND_URL` is `https://` (TLS ended by something in front of Caddy), the session cookie
+If `PLAYGROUND_URL` is `https://` (TLS ended by a proxy in front of it), the session cookie
 becomes `__Host-` prefixed and `Secure`.
 
 ### Without Docker
@@ -133,6 +133,7 @@ Open <http://localhost:5100>.
 ```
 playground/
 ├── src/
+│   ├── proxy.ts             # security headers on every response
 │   ├── app/
 │   │   ├── page.tsx         # one server-rendered page
 │   │   ├── globals.css      # neubrutalism
@@ -143,9 +144,8 @@ playground/
 │       ├── config.ts        # environment and constants
 │       ├── session.ts       # in-memory sessions, CSRF
 │       └── iden.ts          # discovery, token endpoint, ID token checks, userinfo
-├── Caddyfile                # :5100, plain HTTP, security headers
 ├── Dockerfile               # Next.js standalone build
-├── docker-compose.yml       # playground + caddy
+├── docker-compose.yml
 └── .env.example
 ```
 
@@ -166,11 +166,11 @@ posting to a route handler, so tokens never reach the browser's JavaScript. Secu
   Sessions expire after an hour.
 - **Every POST requires a CSRF token.** Form input is checked against allowlists, so only known
   scopes, `acr_values` and `prompt` values ever reach IDEN.
-- **Strict headers from Caddy:** a CSP limiting forms to the playground and IDEN,
+- **Strict headers:** a CSP limiting forms to the playground and IDEN,
   `frame-ancestors 'none'`, and `Referrer-Policy: no-referrer` (the callback URL carries a code).
   After the callback the app redirects, so the code never stays in the address bar or history.
-- **Hardened containers:** non-root Node, read-only filesystems, all capabilities dropped,
-  `no-new-privileges`. Only Caddy publishes a port.
+- **Hardened container:** non-root Node, read-only filesystem, all capabilities dropped,
+  and `no-new-privileges`.
 
 Sessions are held in memory, so the app runs as **one instance**, and a restart signs everyone out
 of the playground. Back-channel logout is not implemented.
