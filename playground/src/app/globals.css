@@ -50,6 +50,12 @@ code { font-size: 0.85em; overflow-wrap: anywhere; }
   border: var(--border);
   box-shadow: var(--shadow);
 }
+.logo {
+  width: 1.15em;
+  height: 1.15em;
+  margin-right: 0.3em;
+  vertical-align: -0.2em;
+}
 .mark {
   display: inline-block;
   padding: 0 0.35em;

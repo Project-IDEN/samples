@@ -41,6 +41,7 @@ export default async function Page() {
     <>
       <header className="top">
         <h1>
+          <img className="logo" src="/icon.svg" alt="" width={48} height={48} />
           <span className="mark">IDEN</span> OIDC Playground
         </h1>
         <dl className="facts">
