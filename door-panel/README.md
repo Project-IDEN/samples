@@ -49,24 +49,39 @@ You need a running IDEN that the panel's server and your browser can both reach 
 and that can reach the panel at `DOOR_PANEL_URL` to deliver back-channel logout. See the
 [IDEN quick start](https://github.com/Project-IDEN/iden#quick-start).
 
-### 1. Set it up in IDEN
-
-`scripts/seed.mjs` creates everything through IDEN's admin API: the **building** API and its four
-door scopes, a role and a group per door, the demo person `alice` in **Building staff**, and the
-panel's client. It can be run again safely; whatever already exists is kept and brought into line,
-and Alice goes back to **Building staff** alone, which resets her between demos.
+### 1. Configure
 
 ```bash
-IDEN_ISSUER=https://iden.example.com \
-DOOR_PANEL_URL=http://doors.example.com:5200 \
-ADMIN_TOKEN=<an administrator's access token> \
-DEMO_PASSWORD=<12+ characters, optional> \
-node scripts/seed.mjs
+cp .env.example .env    # then set IDEN_ISSUER and DOOR_PANEL_URL
 ```
 
-It prints the client secret and Alice's password once. Then enrol the presenter's face on Alice
-at a kiosk, or the vault cannot open. An account holds one face, and enrolling again replaces it,
-so whoever presents next re-enrols theirs first.
+### 2. Set it up in IDEN
+
+`pnpm seed` (or `node scripts/seed.mjs`) creates everything through IDEN's admin API: the
+**building** API and its four door scopes, a role and a group per door, the demo person `alice` in
+**Building staff**, and the panel's client. It reads `.env`, and writes the new client's secret
+into it.
+
+It also needs an administrator's access token. Copy one from the IDEN dashboard: sign in as an
+administrator, open the browser's developer tools, and run this in the **Console**:
+
+```js
+JSON.parse(sessionStorage.getItem(Object.keys(sessionStorage).find((k) => k.startsWith("oidc.user:")))).access_token
+```
+
+It lasts ten minutes, so pass it on the command line rather than keeping it in `.env`:
+
+```bash
+ADMIN_TOKEN=eyJ... pnpm seed
+```
+
+Set `DEMO_PASSWORD` in `.env` (12 characters or more) to choose Alice's password; otherwise IDEN
+generates one, and the seed prints it once. Then enrol the presenter's face on Alice at a kiosk,
+or the vault cannot open. An account holds one face, and enrolling again replaces it, so whoever
+presents next re-enrols theirs first.
+
+Run it again whenever you like: whatever already exists is kept and brought into line, and Alice
+goes back to **Building staff** alone, which resets her between demos.
 
 <details>
 <summary>What it registers for the client</summary>
@@ -84,19 +99,13 @@ so whoever presents next re-enrols theirs first.
 
 </details>
 
-### 2. Configure and start
+### 3. Start
 
 ```bash
-cp .env.example .env    # IDEN_ISSUER, DOOR_PANEL_URL, DOOR_PANEL_CLIENT_SECRET
 docker compose up --build -d
 ```
 
-Open `DOOR_PANEL_URL`. Without Docker:
-
-```bash
-pnpm install
-IDEN_ISSUER=http://localhost:8000 DOOR_PANEL_CLIENT_SECRET=... pnpm dev
-```
+Open `DOOR_PANEL_URL`. Without Docker, `pnpm install && pnpm dev`; Next.js reads the same `.env`.
 
 | Variable | Default | Purpose |
 |---|---|---|
@@ -107,6 +116,8 @@ IDEN_ISSUER=http://localhost:8000 DOOR_PANEL_CLIENT_SECRET=... pnpm dev
 | `BUILDING_AUDIENCE` | `https://building.example/doors` | The building API's audience. Must match the seed |
 | `DOOR_PANEL_IDLE_SECONDS` | `60` | Sign out after this long untouched. `0` turns it off; do that for a presented demo |
 | `DOOR_API_URL` | `http://127.0.0.1:5200/api/doors` | Where the panel's server reaches the door API |
+| `ADMIN_TOKEN` | — | `pnpm seed` only: an administrator's access token, valid ten minutes |
+| `DEMO_PASSWORD` | *(generated)* | `pnpm seed` only: Alice's password when she is created |
 
 ## How it works
 

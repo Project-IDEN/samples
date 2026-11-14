@@ -10,11 +10,24 @@
 // That includes Alice, who goes back to Building staff alone, so running it
 // again resets her between demos.
 //
-//   IDEN_ISSUER=… DOOR_PANEL_URL=… ADMIN_TOKEN=… node scripts/seed.mjs
+//   pnpm seed
 //
-// ADMIN_TOKEN is an administrator's access token. DEMO_PASSWORD, if set, is
-// Alice's password when she is created (12 characters or more); otherwise IDEN
-// generates one and this prints it once.
+// Settings come from door-panel/.env, the same file the panel reads, and the
+// environment overrides it. Besides the panel's own (IDEN_ISSUER,
+// DOOR_PANEL_URL, …) it needs ADMIN_TOKEN: an administrator's access token,
+// which lasts ten minutes, so it can as well be given on the command line:
+//
+//   ADMIN_TOKEN=eyJ… pnpm seed
+//
+// DEMO_PASSWORD, if set, is Alice's password when she is created (12
+// characters or more); otherwise IDEN generates one and this prints it once.
+// A newly created client's secret is written into .env.
+
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+
+const ENV_FILE = new URL("../.env", import.meta.url);
+// Does not override variables already set, so the command line wins.
+if (existsSync(ENV_FILE)) process.loadEnvFile(ENV_FILE);
 
 const ISSUER = trim(env("IDEN_ISSUER"));
 const APP_URL = trim(env("DOOR_PANEL_URL"));
@@ -176,14 +189,30 @@ await call("PUT", `/admin/clients/${client.id}/scopes`, { grantableScopeIds: Obj
 // --- What to do next ---------------------------------------------------------
 
 console.log("\nDone.");
-if (secret) console.log(`\nPut this in .env — it is shown only once:\n\n  DOOR_PANEL_CLIENT_SECRET=${secret}`);
+if (secret) {
+  if (existsSync(ENV_FILE)) {
+    saveSecret(secret);
+    console.log("\nThe client secret is in .env (DOOR_PANEL_CLIENT_SECRET). Restart the panel to use it.");
+  } else {
+    console.log(`\nPut this in .env — it is shown only once:\n\n  DOOR_PANEL_CLIENT_SECRET=${secret}`);
+  }
+}
 if (alicePassword) console.log(`\nAlice signs in as ${alicePassword[0]} with this password, shown only once:\n\n  ${alicePassword[1]}`);
 console.log("\nThe vault opens only with a face: enrol the presenter's face on Alice at a kiosk.");
+
+/** Set DOOR_PANEL_CLIENT_SECRET in .env, leaving every other line as it was. */
+function saveSecret(value) {
+  const lines = readFileSync(ENV_FILE, "utf8").split("\n");
+  const at = lines.findIndex((l) => /^\s*DOOR_PANEL_CLIENT_SECRET\s*=/.test(l));
+  if (at >= 0) lines[at] = `DOOR_PANEL_CLIENT_SECRET=${value}`;
+  else lines.splice(lines.at(-1) === "" ? -1 : lines.length, 0, `DOOR_PANEL_CLIENT_SECRET=${value}`);
+  writeFileSync(ENV_FILE, lines.join("\n"));
+}
 
 function env(name) {
   const value = process.env[name];
   if (!value) {
-    console.error(`Set ${name}. See the comment at the top of scripts/seed.mjs.`);
+    console.error(`Set ${name}, in .env or on the command line. See the comment at the top of scripts/seed.mjs.`);
     process.exit(1);
   }
   return value;
