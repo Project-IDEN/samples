@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <title>IDEN Door Panel</title>
+  <defs>
+<!--IDEN's shield halves, unchanged (assets/logo.svg).-->
+    <path id="halves" d="M8.41 11.25L22.75 4.33L22.75 9.88L12 15.07L12 24Q12 31 22.75 37.83L22.75 43.67Q7 34.66 7 24L7 13.5Q7 12.78 7.38 12.17Q7.77 11.56 8.41 11.25ZM36 24Q36 31 25.25 37.83L25.25 43.67Q41 34.66 41 24L41 13.5Q41 12.78 40.62 12.17Q40.23 11.56 39.59 11.25L25.25 4.33L25.25 9.88L36 15.07L36 24Z"/>
+<!--The keyhole becomes a door, with a knob.-->
+    <path id="door" d="M18.5 14.5H29.5V33H18.5ZM25.6 22.8a1.5 1.5 0 1 0 0.01 0Z" fill-rule="evenodd"/>
+  </defs>
+<!--Tile: hard shadow, then white card with a black border.-->
+  <rect x="6" y="6" width="40" height="40" fill="#000"/>
+  <rect x="3" y="3" width="40" height="40" fill="#fff" stroke="#000" stroke-width="3"/>
+  <g transform="translate(23 23) scale(0.74) translate(-24 -24)">
+    <g transform="translate(2 2)" fill="#000">
+      <use href="#halves"/>
+      <use href="#door"/>
+    </g>
+    <use href="#halves" fill="#CC785C"/>
+    <use href="#door" fill="#E8A55A"/>
+  </g>
+</svg>
