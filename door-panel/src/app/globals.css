@@ -283,8 +283,34 @@ code { font-size: 0.85em; overflow-wrap: anywhere; }
   align-items: start;
 }
 @media (max-width: 900px) { .drawer-grid { grid-template-columns: minmax(0, 1fr); } }
-.explain ol { margin: 0 0 16px; padding-left: 1.25rem; }
-.explain li { margin-bottom: 0.5rem; }
+.explain { grid-column: 1 / -1; }
+.beats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin: 0 0 18px;
+  padding: 0;
+  list-style: none;
+  counter-reset: beat;
+}
+@media (max-width: 900px) { .beats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .beats { grid-template-columns: minmax(0, 1fr); } }
+.beat {
+  counter-increment: beat;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border: var(--border);
+  box-shadow: var(--shadow-sm);
+}
+.beat::before {
+  content: counter(beat);
+  font: 700 1.6rem/1 var(--mono);
+  margin-bottom: 6px;
+}
+.beat b { font-size: 1.05rem; line-height: 1.2; }
+.beat span { font-size: 0.9rem; }
 
 .facts { display: flex; flex-wrap: wrap; gap: 8px 28px; margin: 0; }
 .facts dt { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; }

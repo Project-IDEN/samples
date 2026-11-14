@@ -54,28 +54,34 @@ function Drawer({ session, held }: { session: Session; held: string[] }) {
       <div className="drawer-grid">
         <section className="card explain">
           <h2>What you are looking at</h2>
-          <ol>
-            <li>
-              Signing in asks IDEN for <em>every</em> door. IDEN gives back a token naming only the doors this
-              person&apos;s roles and groups allow. The panel has no idea what a role is.
+          <ol className="beats">
+            <li className="beat" style={{ background: "var(--yellow)" }}>
+              <b>Ask for every door</b>
+              <span>IDEN hands back only the ones your roles allow.</span>
             </li>
-            <li>
-              A door&apos;s colour comes from that token, but it is only a hint. Every tap, even on a red door,
-              asks the door API, which checks the token itself: signed by IDEN, addressed to{" "}
-              <code>{BUILDING_AUDIENCE}</code>, carrying the door&apos;s scope.
+            <li className="beat" style={{ background: "var(--blue)" }}>
+              <b>Colour is a hint</b>
+              <span>
+                Every tap is checked by the door API: for <code>{BUILDING_AUDIENCE}</code>, with the door&apos;s scope.
+              </span>
             </li>
-            <li>
-              Access taken away in the dashboard shows up on the next tap: the panel refreshes the token first and
-              IDEN works the scopes out again. Access <em>added</em> takes a quick, invisible trip back to IDEN (
-              <code>prompt=none</code>), because a refresh never grows past what the sign-in granted.
+            <li className="beat" style={{ background: "var(--pink)" }}>
+              <b>Access removed?</b>
+              <span>Gone on the next tap.</span>
             </li>
-            <li>
-              The vault also wants a face check from the last {FACE_MAX_AGE / 60} minutes. The API says so with{" "}
-              <code>insufficient_user_authentication</code>, and the panel sends the person back to IDEN for it.
+            <li className="beat" style={{ background: "var(--green)" }}>
+              <b>Access added?</b>
+              <span>
+                A silent trip back to IDEN: <code>prompt=none</code>.
+              </span>
             </li>
-            <li>
-              Signing out anywhere — the dashboard, another app, a password change — makes IDEN tell the panel
-              (back-channel logout), and the doors lock within seconds.
+            <li className="beat" style={{ background: "var(--lavender)" }}>
+              <b>The vault wants a face</b>
+              <span>From the last {FACE_MAX_AGE / 60} minutes, or back to IDEN.</span>
+            </li>
+            <li className="beat" style={{ background: "var(--card)" }}>
+              <b>Signed out anywhere?</b>
+              <span>The doors lock in seconds.</span>
             </li>
           </ol>
           <dl className="facts">
