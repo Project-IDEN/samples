@@ -4,7 +4,7 @@
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import type { JWTPayload, ProtectedHeaderParameters } from "jose";
+import type { JWTPayload } from "jose";
 import { APP_URL, SECURE } from "./config";
 
 const SESSION_TTL = 60 * 60;
@@ -29,21 +29,8 @@ export type Badge = {
   idClaims: Claims;
   /** The sign-in's nonce; a refreshed ID token that carries one must repeat it. */
   nonce: string;
-  accessHeader: ProtectedHeaderParameters;
   accessClaims: Claims;
   obtainedAt: number;
-};
-
-/** The last request the panel made to the door API, for the "How it works" drawer. */
-export type DoorCall = {
-  door: string;
-  method: string;
-  url: string;
-  status: number;
-  wwwAuthenticate?: string;
-  body: unknown;
-  at: number;
-  steps: string[];
 };
 
 /** Why the panel went to IDEN before opening `door`; a second try never goes again. */
@@ -57,7 +44,6 @@ export type Session = {
   pending: Record<string, Pending>; // state -> request
   badge: Badge | null;
   flash: Flash | null;
-  lastCall: DoorCall | null;
   /** A door to open as soon as the page loads, after a round trip to IDEN. */
   autoOpen: AutoOpen | null;
 };
@@ -89,7 +75,6 @@ export function newSession(response: NextResponse): Session {
     pending: {},
     badge: null,
     flash: null,
-    lastCall: null,
     autoOpen: null,
   };
   SESSIONS.set(sid, session);
@@ -100,7 +85,6 @@ export function newSession(response: NextResponse): Session {
 /** Forget whoever is signed in on this panel. */
 export function signOut(session: Session, flash: Flash | null = null) {
   session.badge = null;
-  session.lastCall = null;
   session.autoOpen = null;
   session.flash = flash;
 }

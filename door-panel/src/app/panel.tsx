@@ -90,7 +90,7 @@ export function Panel(props: {
           show(door, "error", result.message, 4000);
           break;
       }
-      router.refresh(); // the drawer shows the request just made
+      router.refresh(); // the drawer shows the badge as it is now
     },
     [csrf, lockDown, router, show],
   );

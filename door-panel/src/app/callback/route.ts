@@ -56,7 +56,6 @@ export async function GET(request: NextRequest) {
       code_verifier: pending.verifier,
     });
     const badge = await makeBadge(tokens, pending.nonce);
-    if (session.badge?.idClaims.sub !== badge.idClaims.sub) session.lastCall = null;
     session.badge = badge;
   } catch (error) {
     if (error instanceof OAuthFailure) return backHome(session, "error", `${error.error}: ${error.description}`);

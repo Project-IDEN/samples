@@ -67,7 +67,6 @@ export async function makeBadge(tokens: Record<string, string>, nonce: string, p
     },
     idClaims: idToken.claims,
     nonce,
-    accessHeader: access.header,
     accessClaims: access.claims,
     obtainedAt: now(),
   };

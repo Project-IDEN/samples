@@ -35,8 +35,8 @@ signing in as Alice next to the admin dashboard would sign the administrator out
 
 Afterwards, remove Alice from every group but **Building staff**, ready for the next run.
 
-Open **How it works** under the doors for the details: Alice's scopes, `acr` / `amr`, the last
-request to the door API with its status and `WWW-Authenticate`, and both tokens decoded.
+Open **How it works** under the doors for the story in six steps, and Alice's badge: which door
+scopes it carries, `acr` / `amr`, and when she signed in.
 
 A panel nobody touches for a minute signs out of the panel and of IDEN, so at an unattended booth
 the next visitor never inherits the last one's session. **For a presented demo, set

@@ -35,10 +35,8 @@ body {
 h1, h2 { margin: 0; line-height: 1.15; font-weight: 700; }
 h1 { font-size: clamp(1.6rem, 3.4vw, 2.4rem); letter-spacing: -0.02em; }
 h2 { font-size: 1.25rem; margin: 0 0 0.6rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
-code, pre, .label, dt, .tag, .eyebrow, .door-state { font-family: var(--mono); }
+code, .label, dt, .eyebrow, .door-state { font-family: var(--mono); }
 code { font-size: 0.85em; overflow-wrap: anywhere; }
-.muted { color: var(--muted); margin: 0 0 0.75rem; }
-.small { font-size: 0.85rem; }
 .label { display: block; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; }
 .eyebrow { margin: 0 0 4px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.8rem; }
 
@@ -83,7 +81,7 @@ code { font-size: 0.85em; overflow-wrap: anywhere; }
   font-weight: 700;
 }
 
-/* --- Banners & tags ------------------------------------------------------- */
+/* --- Banners -------------------------------------------------------------- */
 
 .banner {
   margin: 0 0 20px;
@@ -96,17 +94,6 @@ code { font-size: 0.85em; overflow-wrap: anywhere; }
 .banner.error { background: var(--pink); }
 .banner.warn { background: var(--yellow); }
 .banner.locked { background: var(--ink); color: var(--yellow); }
-
-.tag {
-  display: inline-block;
-  padding: 0 6px;
-  border: var(--border-thin);
-  background: var(--card);
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  vertical-align: middle;
-}
 
 /* --- Doors ---------------------------------------------------------------- */
 
@@ -324,23 +311,6 @@ code { font-size: 0.85em; overflow-wrap: anywhere; }
 .kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 16px; margin: 0; }
 .kv dt { font-size: 0.75rem; text-transform: uppercase; padding-top: 2px; }
 .kv dd { margin: 0; font-weight: 700; overflow-wrap: anywhere; }
-
-.call-ok { background: #e6f6e9; }
-.call-bad { background: #ffe3e3; }
-.steps { margin: 0; padding-left: 1.25rem; font-size: 0.9rem; }
-
-.raw summary { cursor: pointer; font-weight: 700; font-size: 1.05rem; display: flex; gap: 8px; align-items: center; }
-.raw[open] summary { margin-bottom: 12px; }
-pre {
-  margin: 0 0 10px;
-  padding: 12px;
-  border: var(--border-thin);
-  background: var(--bg);
-  font-size: 0.8rem;
-  overflow-x: auto;
-  max-height: 420px;
-}
-pre.wrap { white-space: pre-wrap; word-break: break-all; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
