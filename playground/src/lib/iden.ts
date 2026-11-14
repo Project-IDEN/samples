@@ -132,6 +132,47 @@ export async function verifyIdToken(raw: string, nonce: string, nonceRequired = 
   }
 }
 
+const BACKCHANNEL_LOGOUT_EVENT = "http://schemas.openid.net/event/backchannel-logout";
+
+// jti -> exp of logout tokens already accepted, so a captured one cannot be replayed.
+const seenLogoutTokens = ((globalThis as typeof globalThis & { idenLogoutJtis?: Map<string, number> }).idenLogoutJtis ??=
+  new Map<string, number>());
+
+/** Every check OpenID Connect Back-Channel Logout 1.0 Section 2.6 asks of a client. */
+export async function verifyLogoutToken(raw: string): Promise<Claims> {
+  const meta = await metadata();
+  try {
+    const header = decodeProtectedHeader(raw);
+    // Explicit typing (Section 2.4): IDEN always sends it, so require it.
+    if (String(header.typ ?? "").toLowerCase() !== "logout+jwt") {
+      throw new InvalidToken(`Not a logout token (typ ${header.typ}).`);
+    }
+    const { payload } = await jwtVerify<Claims>(raw, jwks(meta.jwks_uri), {
+      algorithms: meta.id_token_signing_alg_values_supported.filter((a) => SAFE_ALGORITHMS.includes(a)),
+      audience: CLIENT_ID,
+      issuer: ISSUER,
+      clockTolerance: 30,
+      maxTokenAge: "5m",
+      requiredClaims: ["iss", "aud", "iat", "exp", "jti", "events"],
+    });
+    const events = payload.events;
+    if (typeof events !== "object" || events === null || typeof events[BACKCHANNEL_LOGOUT_EVENT] !== "object") {
+      throw new InvalidToken("events does not name the back-channel logout event.");
+    }
+    if (!payload.sid && !payload.sub) throw new InvalidToken("Neither sid nor sub is present.");
+    // Without this, a logout token could pass as an ID token.
+    if ("nonce" in payload) throw new InvalidToken("A logout token must not carry a nonce.");
+
+    const nowSeconds = Date.now() / 1000;
+    for (const [jti, exp] of seenLogoutTokens) if (exp < nowSeconds - 60) seenLogoutTokens.delete(jti);
+    if (seenLogoutTokens.has(payload.jti!)) throw new InvalidToken("This logout token was already used.");
+    seenLogoutTokens.set(payload.jti!, payload.exp!);
+    return payload;
+  } catch (error) {
+    throw error instanceof InvalidToken ? error : new InvalidToken((error as Error).message);
+  }
+}
+
 /**
  * An access token's contents, for display only. It is addressed to APIs, which
  * validate it — this application never trusts what it says.

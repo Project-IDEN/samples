@@ -11,6 +11,7 @@ import {
   OIDC_SCOPES,
   PROMPTS,
   REDIRECT_URI,
+  BACKCHANNEL_LOGOUT_URI,
 } from "@/lib/config";
 import { metadata, type Metadata } from "@/lib/iden";
 import { errorMessage, loadSession, type Result } from "@/lib/session";
@@ -58,6 +59,10 @@ export default async function Page() {
           <div>
             <dt>Redirect URI</dt>
             <dd>{REDIRECT_URI}</dd>
+          </div>
+          <div>
+            <dt>Back-channel logout URI</dt>
+            <dd>{BACKCHANNEL_LOGOUT_URI}</dd>
           </div>
         </dl>
       </header>

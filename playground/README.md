@@ -38,6 +38,7 @@ the playground is reached, for example `http://playground.example.com:5100`:
 | Grants | `authorization_code`, `refresh_token` |
 | Redirect URI | `PLAYGROUND_URL/callback` |
 | Post-logout redirect URI | `PLAYGROUND_URL/` |
+| Back-channel logout URI | `PLAYGROUND_URL/backchannel-logout`, so the playground hears when the IDEN session ends elsewhere. IDEN's server must be able to reach it |
 | Skip consent | Off, so you can see the consent screen and test `prompt=consent` |
 | Scopes | **None.** The OIDC scopes need no grant, and leaving the rest out keeps it OIDC-only |
 
@@ -57,6 +58,7 @@ curl -X POST "$IDEN_ISSUER/admin/clients" \
     "allowedGrants": ["authorization_code", "refresh_token"],
     "redirectUris": ["'"$PLAYGROUND_URL"'/callback"],
     "postLogoutRedirectUris": ["'"$PLAYGROUND_URL"'/"],
+    "backchannelLogoutUri": "'"$PLAYGROUND_URL"'/backchannel-logout",
     "skipConsent": false,
     "grantableScopeIds": []
   }'
@@ -104,6 +106,7 @@ up.
 | **Revoke access token**, then **Call userinfo** | `401` with a `WWW-Authenticate` challenge |
 | **Revoke refresh token**, then **Refresh tokens** | `invalid_grant` |
 | **Sign out everywhere** | Ends both the playground session and the IDEN session |
+| Sign in, then sign out from the IDEN dashboard (or end the session on its sessions page) and reload the playground | Signed out here too: IDEN sent a logout token to `/backchannel-logout` |
 
 ## Configuration
 
@@ -138,6 +141,7 @@ playground/
 │   │   ├── page.tsx         # one server-rendered page
 │   │   ├── globals.css      # neubrutalism
 │   │   ├── authorize/ callback/ refresh/ userinfo/ revoke/ logout/ clear/
+│   │   │                    backchannel-logout/
 │   │   │                    # route handlers, one per form or redirect
 │   │   └── session/         # gives a new browser its session cookie
 │   └── lib/
@@ -160,6 +164,12 @@ posting to a route handler, so tokens never reach the browser's JavaScript. Secu
   algorithms only, keys refetched on rotation), plus `iss`, `aud`, `azp`, `exp`, `iat` and `nonce`.
   Access and logout tokens are rejected by `typ` and `events`. A refreshed ID token must name the
   same `sub`. The userinfo `sub` must match the ID token's.
+- **Single sign-out both ways.** **Sign out everywhere** sends the person to IDEN's
+  `end_session_endpoint` with `id_token_hint`. In the other direction, IDEN POSTs a logout token
+  to `/backchannel-logout` whenever an IDEN session ends, and every playground sign-in carrying
+  that `sid` is forgotten. The logout token is checked as Back-Channel Logout 1.0 asks: signature,
+  `iss`, `aud`, `typ` `logout+jwt`, the `events` claim, `sid` or `sub`, no `nonce`, and a `jti`
+  seen only once.
 - **The access token is not trusted.** It is shown decoded, but it is addressed to APIs, which
   are the ones that validate it.
 - **Tokens stay on the server**, in memory, keyed by a random `HttpOnly`, `SameSite=Lax` cookie.
@@ -173,4 +183,4 @@ posting to a route handler, so tokens never reach the browser's JavaScript. Secu
   and `no-new-privileges`.
 
 Sessions are held in memory, so the app runs as **one instance**, and a restart signs everyone out
-of the playground. Back-channel logout is not implemented.
+of the playground.

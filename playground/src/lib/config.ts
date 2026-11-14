@@ -8,6 +8,8 @@ export const APP_URL = trimSlash(process.env.PLAYGROUND_URL || "http://localhost
 
 export const REDIRECT_URI = `${APP_URL}/callback`;
 export const POST_LOGOUT_REDIRECT_URI = `${APP_URL}/`;
+// IDEN's server POSTs a logout token here when an IDEN session ends.
+export const BACKCHANNEL_LOGOUT_URI = `${APP_URL}/backchannel-logout`;
 export const SECURE = APP_URL.startsWith("https://");
 
 // An authorization request is answered within ten minutes, or not at all.

@@ -100,6 +100,25 @@ export function newSession(response: NextResponse): Session {
   return session;
 }
 
+/**
+ * Back-channel logout: forget every sign-in that belongs to the IDEN session
+ * that just ended. With `sid`, only that session's sign-ins (and, if `sub` is
+ * given too, only that person's); without it, everything `sub` signed in to.
+ */
+export function endIdenSession({ sid, sub }: { sid?: string; sub?: string }): number {
+  let ended = 0;
+  for (const session of SESSIONS.values()) {
+    const claims = session.result?.idToken?.claims;
+    if (!claims) continue;
+    const matches = sid ? claims.sid === sid && (!sub || claims.sub === sub) : claims.sub === sub;
+    if (!matches) continue;
+    session.result = null;
+    session.flash = ["ok", "IDEN told the playground that your session ended, so you are signed out here too."];
+    ended++;
+  }
+  return ended;
+}
+
 /** A 303 back to the page, optionally with a message to show once. */
 export function backHome(session: Session | null, kind?: "ok" | "error", message = "") {
   if (session && kind) session.flash = [kind, message];
