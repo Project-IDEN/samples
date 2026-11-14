@@ -14,24 +14,34 @@ can change which, and the vault wants more than a card.
 Who holds what is decided in IDEN by groups and roles. The panel contains no role checks: it
 reads the scopes in the token IDEN gives it, and the door API checks them again.
 
-## The demo, in under a minute
+## The demo, in a couple of minutes
 
-1. **"This is Alice. She works in the lab."** Sign in as `alice`. The lobby and lab are green, the
-   server room and vault are hatched. Tap the server room: it shakes, *access denied*.
-2. **"Security gives her the server room."** In the IDEN dashboard, add Alice to **IT team**. Tap
-   the server room again: a moment of *checking your badge with IDEN*, then it opens. Nothing was
-   redeployed.
-3. **"And takes it away again."** Remove her from **IT team** and wait ten seconds. Tap: denied.
-4. **"The vault needs more than a badge."** Sign in as `carol`, tap the vault, and IDEN asks for
-   her face. Back on the panel, the vault opens.
-5. **"Sign out anywhere, and the doors lock."** Sign out of the IDEN dashboard in the same browser.
-   Within two seconds the panel slams every door shut: *Badge deactivated*.
+One person, Alice, whose job changes while you watch. You need **two browsers**, or two browser
+profiles: the panel signed in as Alice (on a tablet or a second screen), and the IDEN dashboard
+signed in as an administrator (on your laptop). A browser holds one IDEN account at a time, so
+signing in as Alice next to the admin dashboard would sign the administrator out.
 
-Open **How it works** under the doors for the details: this person's scopes, `acr` / `amr`, the
-last request to the door API with its status and `WWW-Authenticate`, and both tokens decoded.
+1. **"This is Alice. She has just started."** Sign in to the panel as `alice`. Only the lobby is
+   green. Tap the lab: it shakes, *access denied*.
+2. **"She joins the lab."** In the dashboard, add Alice to **Lab team**. Tap the lab again: a moment
+   of *checking your badge with IDEN*, then it opens. Nothing was redeployed.
+3. **"She moves to IT."** Add her to **IT team** and remove her from **Lab team**. Wait ten seconds,
+   then tap: the server room opens, the lab is denied.
+4. **"Promoted to security. The vault needs more than a badge."** Add her to **Security team** and
+   tap the vault. IDEN asks for her face; back on the panel, the vault opens.
+5. **"Sign out anywhere, and the doors lock."** In the panel's browser, open the IDEN dashboard (it
+   signs in as Alice without asking) and sign out. Within two seconds the panel slams every door
+   shut: *Badge deactivated*.
 
-A panel nobody touches for a minute signs out of the panel and of IDEN, so at a booth the next
-person never inherits the last one's session.
+Run `scripts/seed.mjs` again afterwards to put Alice back in **Building staff** only.
+
+Open **How it works** under the doors for the details: Alice's scopes, `acr` / `amr`, the last
+request to the door API with its status and `WWW-Authenticate`, and both tokens decoded.
+
+A panel nobody touches for a minute signs out of the panel and of IDEN, so at an unattended booth
+the next visitor never inherits the last one's session. **For a presented demo, set
+`DOOR_PANEL_IDLE_SECONDS=0`**: while you work in the dashboard nobody touches the panel, and it
+would sign Alice out halfway through.
 
 ## Run it
 
@@ -42,9 +52,9 @@ and that can reach the panel at `DOOR_PANEL_URL` to deliver back-channel logout.
 ### 1. Set it up in IDEN
 
 `scripts/seed.mjs` creates everything through IDEN's admin API: the **building** API and its four
-door scopes, a role and a group per door, the demo people `alice`, `bob`, `carol` and `dave`, and
-the panel's client. It can be run again safely; whatever already exists is kept and brought into
-line.
+door scopes, a role and a group per door, the demo person `alice` in **Building staff**, and the
+panel's client. It can be run again safely; whatever already exists is kept and brought into line,
+and Alice goes back to **Building staff** alone, which resets her between demos.
 
 ```bash
 IDEN_ISSUER=https://iden.example.com \
@@ -54,8 +64,9 @@ DEMO_PASSWORD=<12+ characters, optional> \
 node scripts/seed.mjs
 ```
 
-It prints the client secret and the demo passwords once. Then enrol Carol's face at a kiosk, or
-the vault cannot open for anyone.
+It prints the client secret and Alice's password once. Then enrol the presenter's face on Alice
+at a kiosk, or the vault cannot open. An account holds one face, and enrolling again replaces it,
+so whoever presents next re-enrols theirs first.
 
 <details>
 <summary>What it registers for the client</summary>
@@ -94,7 +105,7 @@ IDEN_ISSUER=http://localhost:8000 DOOR_PANEL_CLIENT_SECRET=... pnpm dev
 | `DOOR_PANEL_CLIENT_ID` | `door-panel` | The client the seed registered |
 | `DOOR_PANEL_CLIENT_SECRET` | *(required)* | Its secret |
 | `BUILDING_AUDIENCE` | `https://building.example/doors` | The building API's audience. Must match the seed |
-| `DOOR_PANEL_IDLE_SECONDS` | `60` | Sign out after this long untouched. `0` turns it off |
+| `DOOR_PANEL_IDLE_SECONDS` | `60` | Sign out after this long untouched. `0` turns it off; do that for a presented demo |
 | `DOOR_API_URL` | `http://127.0.0.1:5200/api/doors` | Where the panel's server reaches the door API |
 
 ## How it works

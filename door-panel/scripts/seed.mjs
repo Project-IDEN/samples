@@ -3,16 +3,18 @@
 //   the "building" API ─ one scope per door
 //   four roles         ─ each opens one door
 //   four groups        ─ hold those roles
-//   four demo people   ─ in those groups
+//   alice              ─ the one demo person, in Building staff only
 //   the panel's client ─ confidential, consent skipped, back-channel logout on
 //
 // Safe to run again: whatever already exists is kept and brought into line.
+// That includes Alice, who goes back to Building staff alone, so running it
+// again resets her between demos.
 //
 //   IDEN_ISSUER=… DOOR_PANEL_URL=… ADMIN_TOKEN=… node scripts/seed.mjs
 //
 // ADMIN_TOKEN is an administrator's access token. DEMO_PASSWORD, if set, is
-// given to every new demo person (12 characters or more); otherwise IDEN
-// generates one each and this prints them once.
+// Alice's password when she is created (12 characters or more); otherwise IDEN
+// generates one and this prints it once.
 
 const ISSUER = trim(env("IDEN_ISSUER"));
 const APP_URL = trim(env("DOOR_PANEL_URL"));
@@ -43,12 +45,9 @@ const GROUPS = {
   "Security team": ["Security.", ["security-officer"]],
 };
 
-const PEOPLE = {
-  alice: ["Alice", ["Building staff", "Lab team"]],
-  bob: ["Bob", ["Building staff", "IT team"]],
-  carol: ["Carol", ["Building staff", "Security team"]],
-  dave: ["Dave", ["Building staff"]],
-};
+// The demo is one person whose job changes: the presenter adds and removes
+// her groups in the dashboard, and she starts each demo in this one.
+const ALICE = { username: "alice", displayName: "Alice", startsIn: "Building staff" };
 
 // --- The admin API -----------------------------------------------------------
 
@@ -124,24 +123,29 @@ for (const [name, [description, roleNames]] of Object.entries(GROUPS)) {
   groupIds[name] = group.id;
 }
 
-console.log("\nPeople");
-const passwords = [];
-for (const [username, [displayName, groupNames]] of Object.entries(PEOPLE)) {
-  const found = (await all(`/admin/users?search=${encodeURIComponent(username)}`)).find((u) => u.username === username);
-  if (found) {
-    for (const g of groupNames) await call("POST", `/admin/groups/${groupIds[g]}/members`, { userIds: [found.id] });
-    console.log(`  ✓ ${username} (already there; password unchanged)`);
-    continue;
+console.log("\nAlice");
+let alicePassword;
+const alice = (await all(`/admin/users?search=${ALICE.username}`)).find((u) => u.username === ALICE.username);
+if (alice) {
+  // Back to the start: in Building staff, out of the other demo groups.
+  // Groups that are not the demo's are left alone.
+  await call("POST", `/admin/groups/${groupIds[ALICE.startsIn]}/members`, { userIds: [alice.id] });
+  for (const group of alice.groups) {
+    if (group.name !== ALICE.startsIn && group.name in GROUPS) {
+      await call("DELETE", `/admin/groups/${group.id}/members/${alice.id}`);
+    }
   }
+  console.log(`  ✓ ${ALICE.username} (already there; reset to ${ALICE.startsIn} only, password unchanged)`);
+} else {
   const made = await call("POST", "/admin/users", {
-    emailLocalPart: username,
-    username,
-    displayName,
+    emailLocalPart: ALICE.username,
+    username: ALICE.username,
+    displayName: ALICE.displayName,
     password: DEMO_PASSWORD,
-    groupIds: groupNames.map((g) => groupIds[g]),
+    groupIds: [groupIds[ALICE.startsIn]],
   });
-  passwords.push([username, made.email, DEMO_PASSWORD ?? made.generatedPassword]);
-  console.log(`  + ${username}`);
+  alicePassword = [made.email, DEMO_PASSWORD ?? made.generatedPassword];
+  console.log(`  + ${ALICE.username}, in ${ALICE.startsIn}`);
 }
 
 console.log("\nClient");
@@ -173,11 +177,8 @@ await call("PUT", `/admin/clients/${client.id}/scopes`, { grantableScopeIds: Obj
 
 console.log("\nDone.");
 if (secret) console.log(`\nPut this in .env — it is shown only once:\n\n  DOOR_PANEL_CLIENT_SECRET=${secret}`);
-if (passwords.length) {
-  console.log("\nDemo people (passwords shown only once):\n");
-  for (const [username, email, password] of passwords) console.log(`  ${username.padEnd(6)} ${email.padEnd(32)} ${password}`);
-}
-console.log("\nCarol opens the vault only with a face: enrol hers at a kiosk.");
+if (alicePassword) console.log(`\nAlice signs in as ${alicePassword[0]} with this password, shown only once:\n\n  ${alicePassword[1]}`);
+console.log("\nThe vault opens only with a face: enrol the presenter's face on Alice at a kiosk.");
 
 function env(name) {
   const value = process.env[name];
