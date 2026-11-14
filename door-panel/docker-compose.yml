@@ -1,6 +1,6 @@
 # The IDEN door panel: the Next.js server, on plain HTTP :5200.
 #
-#   cp .env.example .env    # then fill it in (scripts/seed.mjs prints the secret)
+#   cp .env.example .env    # then fill it in
 #   docker compose up --build -d
 
 name: iden-door-panel
