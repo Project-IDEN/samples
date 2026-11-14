@@ -52,7 +52,7 @@ export const POST = jsonAction<{ door: string }>(async (session, params, request
       // A refresh can take access away but never add it: it stays within what
       // the sign-in granted. Access granted since then needs a new
       // authorization, which IDEN answers silently from its session.
-      if (after === "silent" || after === "signin") return Response.json({ outcome: "denied" });
+      if (after === "silent") return Response.json({ outcome: "denied" });
       steps.push("403 insufficient_scope: asking IDEN again silently (prompt=none) in case access was granted since sign-in.");
       return Response.json({ outcome: "recheck", url: await startSignIn(session, { door: door.id, silent: true }) });
     }

@@ -9,11 +9,11 @@ import { APP_URL, SECURE } from "./config";
 
 const SESSION_TTL = 60 * 60;
 const MAX_SESSIONS = 1000;
-export const COOKIE = SECURE ? "__Host-door-panel" : "door-panel";
+const COOKIE = SECURE ? "__Host-door-panel" : "door-panel";
 
 export type Claims = JWTPayload & Record<string, any>;
 
-export type Pending = {
+type Pending = {
   verifier: string;
   nonce: string;
   at: number;
@@ -47,7 +47,7 @@ export type DoorCall = {
 };
 
 /** Why the panel went to IDEN before opening `door`; a second try never goes again. */
-export type AutoOpen = { door: string; after: "signin" | "silent" | "face" };
+export type AutoOpen = { door: string; after: "silent" | "face" };
 
 export type Flash = ["ok" | "error" | "locked", string];
 

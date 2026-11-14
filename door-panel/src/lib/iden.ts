@@ -6,10 +6,10 @@ import { timingSafeEqual } from "node:crypto";
 import { CLIENT_ID, CLIENT_SECRET, ISSUER } from "./config";
 import type { Claims } from "./session";
 
-export type Decoded = { header: ProtectedHeaderParameters; claims: Claims };
+type Decoded = { header: ProtectedHeaderParameters; claims: Claims };
 
 /** IDEN could not be reached, or answered in a way we refuse to trust. */
-export class ProviderError extends Error {}
+class ProviderError extends Error {}
 
 /** IDEN refused a token request. */
 export class OAuthFailure extends Error {
@@ -28,8 +28,7 @@ export class InvalidToken extends Error {}
 // key — everyone — forge a token.
 const SAFE_ALGORITHMS = ["RS256", "RS384", "RS512", "PS256", "PS384", "PS512", "ES256", "ES384", "EdDSA"];
 
-export type Metadata = Record<string, string> & {
-  acr_values_supported?: string[];
+type Metadata = Record<string, string> & {
   id_token_signing_alg_values_supported: string[];
 };
 
@@ -82,7 +81,7 @@ function clientAuth(body: URLSearchParams): Record<string, string> {
 }
 
 /** A POST to one of IDEN's client-authenticated endpoints. */
-export async function clientPost(endpoint: string, data: Record<string, string>) {
+async function clientPost(endpoint: string, data: Record<string, string>) {
   const body = new URLSearchParams(data);
   const headers = clientAuth(body);
   return call(endpoint, { method: "POST", headers, body });

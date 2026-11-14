@@ -1,6 +1,7 @@
 # The IDEN door panel: the Next.js server, on plain HTTP :5200.
 #
 #   cp .env.example .env    # then fill it in
+#   pnpm seed               # sets IDEN up, and writes the client secret into .env
 #   docker compose up --build -d
 
 name: iden-door-panel
@@ -8,15 +9,10 @@ name: iden-door-panel
 services:
   door-panel:
     build: .
-    environment:
-      IDEN_ISSUER: ${IDEN_ISSUER:?set IDEN_ISSUER in .env}
-      DOOR_PANEL_URL: ${DOOR_PANEL_URL:?set DOOR_PANEL_URL in .env}
-      DOOR_PANEL_CLIENT_ID: ${DOOR_PANEL_CLIENT_ID:-door-panel}
-      DOOR_PANEL_CLIENT_SECRET: ${DOOR_PANEL_CLIENT_SECRET:?set DOOR_PANEL_CLIENT_SECRET in .env}
-      DOOR_PANEL_IDLE_SECONDS: ${DOOR_PANEL_IDLE_SECONDS:-60}
-      BUILDING_AUDIENCE: ${BUILDING_AUDIENCE:-https://building.example/doors}
-      # The panel calls its own door API inside the container.
-      DOOR_API_URL: http://127.0.0.1:5200/api/doors
+    # The same file `pnpm dev` and `pnpm seed` read.
+    env_file:
+      - path: .env
+        required: true
     ports:
       - "5200:5200"
     read_only: true

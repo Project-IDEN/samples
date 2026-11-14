@@ -7,7 +7,7 @@ import { REQUESTED_SCOPES } from "./doors";
 import { InvalidToken, metadata, OAuthFailure, peek, tokenRequest, verifyIdToken } from "./iden";
 import { type Badge, now, randomToken, type Session, signOut } from "./session";
 
-export type SignInOptions = {
+type SignInOptions = {
   /** Open this door when the person comes back. */
   door?: string;
   /** prompt=none: no page is shown; IDEN answers from the session it already has. */

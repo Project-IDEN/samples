@@ -7,7 +7,7 @@ import { createRemoteJWKSet, decodeProtectedHeader, errors, jwtVerify, type JWTP
 import { BUILDING_AUDIENCE, FACE_ACR, FACE_MAX_AGE, ISSUER } from "./config";
 import { doorById } from "./doors";
 
-export type Verdict = { status: number; body: Record<string, unknown>; wwwAuthenticate?: string };
+type Verdict = { status: number; body: Record<string, unknown>; wwwAuthenticate?: string };
 
 const SAFE_ALGORITHMS = ["RS256", "RS384", "RS512", "PS256", "PS384", "PS512", "ES256", "ES384", "EdDSA"];
 
