@@ -33,7 +33,7 @@ signing in as Alice next to the admin dashboard would sign the administrator out
    signs in as Alice without asking) and sign out. Within two seconds the panel slams every door
    shut: *Badge deactivated*.
 
-Run `pnpm seed` again afterwards to put Alice back in **Building staff** only.
+Afterwards, remove Alice from every group but **Building staff**, ready for the next run.
 
 Open **How it works** under the doors for the details: Alice's scopes, `acr` / `amr`, the last
 request to the door API with its status and `WWW-Authenticate`, and both tokens decoded.
@@ -49,55 +49,17 @@ You need a running IDEN that the panel's server and your browser can both reach 
 and that can reach the panel at `DOOR_PANEL_URL` to deliver back-channel logout. See the
 [IDEN quick start](https://github.com/Project-IDEN/iden#quick-start).
 
-All of the panel's settings live in one file, `.env`. `pnpm dev`, `pnpm seed` and
-`docker compose` all read it.
+Steps 1–4 are done in the IDEN dashboard, signed in as an administrator, under **Administration**.
+`DOOR_PANEL_URL` is wherever the panel is reached, for example `http://doors.example.com:5200`.
 
-### 1. Configure
+### 1. Register the building API and its doors
 
-```bash
-cp .env.example .env    # set IDEN_ISSUER and DOOR_PANEL_URL
-```
-
-### 2. Set it up in IDEN
-
-`pnpm seed` creates everything through IDEN's admin API: the **building** API and its four door
-scopes, a role and a group per door, the demo person `alice` in **Building staff**, and the
-panel's client, whose secret it writes into `.env`. It needs Node 22.18 or later, which runs the
-panel's TypeScript settings directly, and no `pnpm install`.
-
-It needs an administrator's access token in `.env` as `ADMIN_TOKEN`. Copy one from the IDEN
-dashboard: sign in as an administrator, open the browser's developer tools, and run this in the
-**Console**:
-
-```js
-JSON.parse(sessionStorage.getItem(Object.keys(sessionStorage).find((k) => k.startsWith("oidc.user:")))).access_token
-```
-
-The token lasts ten minutes, so paste a fresh one before each run. Then:
-
-```bash
-pnpm seed
-```
-
-It prints Alice's password once (set `DEMO_PASSWORD` to choose it). Then enrol the presenter's face
-on Alice at a kiosk, or the vault cannot open. An account holds one face, and enrolling again
-replaces it, so whoever presents next re-enrols theirs first.
-
-Run it again whenever you like: whatever already exists is kept and brought into line, and Alice
-goes back to **Building staff** alone, which resets her between demos.
-
-<details>
-<summary>The same, by hand in the dashboard</summary>
-
-Signed in as an administrator, under **Administration**. `DOOR_PANEL_URL` is wherever the panel is
-reached.
-
-**1. The building API and its doors.** Under **APIs**, create one:
+Under **APIs**, create one:
 
 | Field | Value |
 |---|---|
 | Name | `building` |
-| Audience | `https://building.example/doors` |
+| Audience | `https://building.example/doors` (any absolute URI; it goes in `BUILDING_AUDIENCE`) |
 
 Then add a scope for each door:
 
@@ -108,9 +70,9 @@ Then add a scope for each door:
 | `building:server-room:open` | Open the server room. |
 | `building:vault:open` | Open the vault. |
 
-The audience can be any absolute URI. If you choose another, set `BUILDING_AUDIENCE` to it.
+### 2. Make a role and a group for each door
 
-**2. A role and a group for each door.** Under **Roles**, then **Groups**:
+Under **Roles**, then **Groups**:
 
 | Role | Scope | Group (holds the role) |
 |---|---|---|
@@ -119,14 +81,20 @@ The audience can be any absolute URI. If you choose another, set `BUILDING_AUDIE
 | `it-technician` | `building:server-room:open` | IT team |
 | `security-officer` | `building:vault:open` | Security team |
 
-**3. Alice.** Under **Users**, create `alice` (display name *Alice*) in **Building staff** only.
+### 3. Add Alice
 
-**4. The panel's client.** Under **Clients**, create one:
+Under **Users**, create `alice` (display name *Alice*) in **Building staff** only, and note her
+password. Then enrol the presenter's face on her at a kiosk, or the vault cannot open. An account
+holds one face, and enrolling again replaces it, so whoever presents next re-enrols theirs first.
+
+### 4. Register the panel
+
+Under **Clients**, create one:
 
 | Field | Value |
 |---|---|
 | Name | Door Panel |
-| Client ID | `door-panel` |
+| Client ID | `door-panel` (it goes in `DOOR_PANEL_CLIENT_ID`) |
 | Application type | **Web application** (confidential: codes are exchanged and tokens refreshed on the server) |
 | Redirect URIs | `DOOR_PANEL_URL/callback` |
 | Post-logout redirect URIs | `DOOR_PANEL_URL/` |
@@ -134,29 +102,25 @@ The audience can be any absolute URI. If you choose another, set `BUILDING_AUDIE
 | Skip the consent screen | **On.** A first-party panel, and the silent re-check below has no page to ask on |
 | Back-channel logout URI | `DOOR_PANEL_URL/backchannel-logout`. IDEN's server must be able to reach it |
 
-Copy the client secret into `.env` as `DOOR_PANEL_CLIENT_SECRET`. It is shown only once.
+Copy the client secret. It is shown only once.
 
-</details>
-
-### 3. Start
+### 5. Configure and start
 
 ```bash
+cp .env.example .env    # then fill it in
 docker compose up --build -d
 ```
 
-Open `DOOR_PANEL_URL`. Without Docker: `pnpm install && pnpm dev`.
+Open `DOOR_PANEL_URL`. Without Docker: `pnpm install && pnpm dev`. Both read `.env`:
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `IDEN_ISSUER` | *(required)* | IDEN's issuer URL. Must match IDEN's `IDEN_ISSUER` exactly |
-| `DOOR_PANEL_URL` | *(required)* | Where browsers reach the panel, and IDEN's server reaches its back-channel URL |
-| `DOOR_PANEL_CLIENT_SECRET` | *(required)* | The client's secret. `pnpm seed` writes it |
-| `ADMIN_TOKEN` | — | `pnpm seed` only. An administrator's access token, valid ten minutes |
-| `DEMO_PASSWORD` | *(generated)* | `pnpm seed` only. Alice's password when she is created |
-| `DOOR_PANEL_IDLE_SECONDS` | `60` | Sign out after this long untouched. `0` turns it off; do that for a presented demo |
-| `DOOR_PANEL_CLIENT_ID` | `door-panel` | The panel's client |
-| `BUILDING_AUDIENCE` | `https://building.example/doors` | The building API's audience |
-| `DOOR_API_URL` | `http://127.0.0.1:5200/api/doors` | Where the panel's server reaches the door API |
+| Variable | Purpose |
+|---|---|
+| `IDEN_ISSUER` | IDEN's issuer URL. Must match IDEN's `IDEN_ISSUER` exactly |
+| `DOOR_PANEL_CLIENT_ID` | The client from step 4 |
+| `DOOR_PANEL_CLIENT_SECRET` | Its secret |
+| `DOOR_PANEL_URL` | Where browsers reach the panel, and IDEN's server reaches its back-channel URL |
+| `DOOR_PANEL_IDLE_SECONDS` | Sign out after this long untouched. `0` turns it off; do that for a presented demo |
+| `BUILDING_AUDIENCE` | The building API's audience from step 1. Must match it exactly |
 
 ## How it works
 
@@ -177,14 +141,12 @@ door-panel/
 │       ├── iden.ts              # discovery, token endpoint, ID and logout token checks
 │       ├── session.ts           # in-memory sessions, CSRF, back-channel session lookup
 │       └── config.ts
-└── scripts/seed.mjs             # sets IDEN up, from config.ts and doors.ts
 ```
 
 **Two parts that do not trust each other.** The panel is a confidential OIDC client like the
 playground. The door API is a resource server: it receives only `Authorization: Bearer`, and
 `door-api.ts` imports nothing from the panel. It runs in the same process to keep the demo to one
-container, but the panel reaches it over HTTP exactly as it would a separate service, and
-`DOOR_API_URL` can point elsewhere. The API validates offline, against IDEN's published keys:
+container, but the panel reaches it over HTTP exactly as it would a separate service. The API validates offline, against IDEN's published keys:
 
 - the signature, with asymmetric algorithms only;
 - `typ` is `at+jwt`, so an ID token, signed by the same key, cannot open a door;

@@ -12,11 +12,11 @@ export const POST_LOGOUT_REDIRECT_URI = `${APP_URL}/`;
 export const BACKCHANNEL_LOGOUT_URI = `${APP_URL}/backchannel-logout`;
 export const SECURE = APP_URL.startsWith("https://");
 
-// The building's door controller: the API registered in IDEN, and where the
-// panel's server reaches it. It runs inside this app, but the panel only ever
-// talks to it over HTTP with a Bearer token, as it would to a separate service.
+// The building's door controller: the API registered in IDEN. It runs inside
+// this app, but the panel only ever talks to it over HTTP with a Bearer token,
+// as it would to a separate service.
 export const BUILDING_AUDIENCE = trimSlash(process.env.BUILDING_AUDIENCE || "https://building.example/doors");
-export const DOOR_API_URL = trimSlash(process.env.DOOR_API_URL || "http://127.0.0.1:5200/api/doors");
+export const DOOR_API_URL = `http://127.0.0.1:${process.env.PORT || 5200}/api/doors`;
 
 // Sign the panel out after this long untouched, so the next person at a shared
 // screen is not signed in as the last one. 0 turns it off.
